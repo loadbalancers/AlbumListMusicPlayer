@@ -1,10 +1,13 @@
 const sequelize = require('sequelize');
 
 const sql = new sequelize({ username: 'root',
-                            password: 'root',
-                            database: 'Spotify',
-                            host: '127.0.0.1',
+                            password: 'muzBost&i3^meoW7bowWow',
+                            database: 'spotify',
+                            host: '54.153.78.160',
                             dialect: 'mysql',
+                            define: {
+                                timestamps: false
+                            },
                             pool: {
                                 max: 100,
                                 min: 0,
@@ -16,7 +19,14 @@ const sql = new sequelize({ username: 'root',
 // SCHEMAS ------------------------------------------------------
 // SONG SCHEMA --------------------------------------------------                         
 const song = sql.define('song', {
-    name: {
+    songId: {
+        type: sequelize.INTEGER,
+        primaryKey: true,
+        validate: {
+            unique: true
+        }
+    },
+    songName: {
         type: sequelize.STRING,
         allowNull: false
     },
@@ -39,20 +49,35 @@ const song = sql.define('song', {
     addedToLibrary: {
         type: sequelize.BOOLEAN,
         allowNull: false
+    },
+    albumId: {
+        type: sequelize.INTEGER,
+        allowNull: false
     }
 });
 
 // ALBUM SCHEMA ----------------------------------------------------------  
 const album = sql.define('album', {
-    name: {
+    albumId: {
+        type: sequelize.INTEGER,
+        primaryKey: true,
+        validate: {
+            unique: true
+        }
+    },
+    albumName: {
         type: sequelize.STRING,
         allowNull: false
     },
-    image: {
+    albumImage: {
         type: sequelize.STRING,
         allowNull: false
     },
-    releaseYear: {
+    publishedYear: {
+        type: sequelize.INTEGER,
+        allowNull: false
+    },
+    artistId: {
         type: sequelize.INTEGER,
         allowNull: false
     }
@@ -60,20 +85,32 @@ const album = sql.define('album', {
 
 // ARTIST SCHEMA ----------------------------------------------------------  
 const artist = sql.define('artist', {
-    name: {
+    artistId: {
+        type: sequelize.INTEGER,
+        primaryKey: true,
+        validate: {
+            unique: true
+        }
+    },
+    artistName: {
         type: sequelize.STRING,
-        allowNull: false
+        allowNull: false,
+        unique: false,
+        validate: {
+            unique: false
+        }
     }
 });
 
+
 // DESCRIBE RELATIONSHIPS --------------------------------------------------
 // THERE ARE MANY SONGS IN ONE ALBUM  
-album.hasMany(song);
-song.belongsTo(album);
+// album.hasMany(song);
+// song.belongsTo(album);
 
 // THERE ARE MANY ALBUMS FOR ONE ARTIST
-artist.hasMany(album);
-album.belongsTo(artist);
+// artist.hasMany(album);
+// album.belongsTo(artist);
 
 exports.schemas = {song, album, artist};
 exports.sql = sql;

@@ -1,7 +1,9 @@
+const newrelic = require('newrelic');
 const express = require('express');
 const app = express();
 const parser = require('body-parser');
 const sqlController = require('../database/SqlControllers');
+const cors = require('cors');
 const PORT = 1600;
 
 //CURRENTLY USED DATABASE
@@ -9,6 +11,8 @@ const currentDatabase = sqlController;
 
 // MIDDLEWARE
 app.use(parser.json());
+app.use(express.static(__dirname + '/../../public/'));
+app.use(cors());
 
 // ENDPOINTS
 const endpoints = {

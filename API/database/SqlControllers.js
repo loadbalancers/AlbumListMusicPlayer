@@ -1,4 +1,5 @@
 const {schemas: {song, album, artist}} = require('./MySqlDatabase');
+const getPicture = require('./Images.js');
 
 // --------------------------------
 // ARTISTS REQUESTS
@@ -6,11 +7,12 @@ const {schemas: {song, album, artist}} = require('./MySqlDatabase');
 // GET REQUESTS -------------------
 exports.getArtist = (artistId) => {
     return new Promise((resolve, reject) => {
-        artist.findOne({where: {id: artistId}})
+        artist.findOne({where: {artistId: artistId}})
             .then(({dataValues}) => {
                 resolve(dataValues);
             })
             .catch((err) => {
+                console.log(err);
                 reject(err);
             });
     });
@@ -33,7 +35,7 @@ exports.createArtist = (artistInfo) => {
     return new Promise((resolve, reject) => {
         if (artistInfo) {
             artist.create({
-                name: artistInfo.name
+                artistName: artistInfo.name
             }).then((artist) => {
                 resolve(artist);
             });
@@ -46,7 +48,7 @@ exports.createArtist = (artistInfo) => {
 // UPDATE REQUESTS -------------------
 exports.updateArtist = (id, newField) => {
     return new Promise((resolve, reject) => {
-        artist.update(newField, {where: {id: id}})
+        artist.update(newField, {where: {artistId: id}})
             .then((newArtist) => {
                 resolve(newArtist);
             })
@@ -58,7 +60,7 @@ exports.updateArtist = (id, newField) => {
 
 // DELETE REQUESTS -------------------
 exports.deleteArtist = (id) => {
-    return artist.destroy({where: {id: id}});
+    return artist.destroy({where: {artistId: id}});
 }
 
 // --------------------------------
@@ -67,7 +69,7 @@ exports.deleteArtist = (id) => {
 // GET REQUESTS -------------------
 exports.getAlbum = (albumId, artistId) => {
     return new Promise((resolve, reject) => {
-        album.findOne({where: {id: albumId, artistId: artistId}})
+        album.findOne({where: {albumId: albumId, artistId: artistId}})
             .then(({dataValues}) => {
                 resolve(dataValues);
             })
@@ -78,15 +80,24 @@ exports.getAlbum = (albumId, artistId) => {
 };
 
 exports.getAlbumsFromArtist = (artistId) => {
-    return new Promise((resolve, reject) => {
-        album.findAll({where: {artistId: artistId}})
-            .then((albums) => {
-                resolve(albums);
-            })
-            .catch((err) => {
-                reject(err);
+    async function getAllData() {
+        async function getAlbumsAndSongs() {
+            let artist = await exports.getArtist(artistId);
+            let albums = await album.findAll({where: {artistId: artistId}, raw: true});
+            let songs = albums.map(async(album) => {
+                return await exports.getSongsFromAlbum(album.albumId);
             });
-        });
+            songs = await Promise.all(songs);
+            albums = albums.map((album, i) => {
+                album.songs = songs[i][0];
+                album.albumImage = getPicture(Math.floor(Math.random()*20));
+                return album;
+            });
+            return {artist, albums};
+        }
+        return await getAlbumsAndSongs();
+    }
+    return getAllData();
 };
 
 // DELETE REQUESTS -------------------
@@ -100,15 +111,13 @@ exports.createAlbumFromArtist = (albumInfo, artistId) => {
         exports.getArtist(artistId)
             .then((wantedArtist) => {
                 album.create({
-                    name: albumInfo.name,
-                    image: albumInfo.image,
-                    releaseYear: albumInfo.releaseYear,
+                    albumName: albumInfo.name,
+                    albumImage: albumInfo.image,
+                    publishedYear: albumInfo.releaseYear,
                     artistId: wantedArtist.id
                 }).then((album) => {
                     resolve(album);
-                }).catch((err) => {
-                    reject(err);
-                });
+                })
             }).catch((err) => {
                 reject(err);
             });
@@ -118,7 +127,7 @@ exports.createAlbumFromArtist = (albumInfo, artistId) => {
 // UPDATE REQUESTS -------------------
 exports.updateAlbum = (id, newField) => {
     return new Promise((resolve, reject) => {
-        album.update(newField, {where: {id: id}})
+        album.update(newField, {where: {albumId: id}})
             .then((updatedFields) => {
                 resolve(updatedFields);
             })
@@ -134,7 +143,7 @@ exports.updateAlbum = (id, newField) => {
 // GET REQUESTS -------------------
 exports.getSong = (songId) => {
     return new Promise((resolve, reject) => {
-        song.findOne({where: {id: songId}})
+        song.findOne({where: {songId: songId}})
             .then((song) => {
                 resolve(song);
             })
@@ -144,16 +153,18 @@ exports.getSong = (songId) => {
         });
 };
 
-exports.getSongsFromAlbum = (albumId) => {
-    return new Promise((resolve, reject) => {
-        song.findAll({where: {albumId: albumId}})
-            .then((songs) => {
-                resolve(songs);
-            })
-            .catch((err) => {
-                reject(err);
-            });
+exports.getSongsFromAlbum = (albumIds) => {
+    async function getSongs() {
+        albumIds = (Array.isArray(albumIds)) ? albumIds : [albumIds]; 
+        async function getSong(id) {
+            return await song.findAll({where: {albumId: id}});
+        }
+        let songs = albumIds.map((id) => {
+            return getSong(id);
         });
+        return await Promise.all(songs);
+    }
+    return getSongs();
 };
 
 // POST REQUESTS -------------------
@@ -162,7 +173,7 @@ exports.createSongFromAlbum = (songInfo, albumId, artistId) => {
         exports.getAlbum(albumId, artistId)
             .then((wantedAlbum) => {
                 song.create({
-                    name: songInfo.name,
+                    songName: songInfo.name,
                     url: songInfo.url,
                     streams: songInfo.streams,
                     length: songInfo.length,
@@ -183,7 +194,7 @@ exports.createSongFromAlbum = (songInfo, albumId, artistId) => {
 // UPDATE REQUESTS -------------------
 exports.updateSong = (id, newField) => {
     return new Promise((resolve, reject) => {
-        song.update(newField, {where: {id: id}})
+        song.update(newField, {where: {songId: id}})
             .then((updatedFields) => {
                 resolve(updatedFields);
             })
@@ -195,5 +206,5 @@ exports.updateSong = (id, newField) => {
 
 // DELETE REQUESTS -------------------
 exports.deleteSong = (id) => {
-    return song.destroy({where: {id: id}});
+    return song.destroy({where: {songId: id}});
 }

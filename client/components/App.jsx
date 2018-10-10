@@ -15,25 +15,25 @@ class App extends React.Component {
       albumPlayingID: 0,
       songPlayingID: 0
     }
-    var artistId = Math.floor(Math.random() * 100) + 1;
-    this.getAllArtists(artistId);
   }
 
   componentDidMount() {
-    var artistId = Math.floor(Math.random() * 100) + 1;
+    var artistId = Math.floor(Math.random() * 1000000) + 3000;
     this.getAllArtists(artistId);
   }
 
   getAllArtists(artistId) {
     $.ajax({
       method: "GET",
-      url: "/artists/albums/" + artistId,
-      success: (data) => {
+      url: `http://127.0.0.1:1600/artists/${artistId}/albums`,
+      dataType: "json",
+      success: ({artist, albums}) => {
+        console.log(artist, albums);
         this.setState({
-          artist: data[0],
+          artist: artist,
           artistID: artistId,
-          artistName: data[0].artistName,
-          albums: data[0].albums
+          artistName: artist.artistName,
+          albums: albums
         })
       }
     })
